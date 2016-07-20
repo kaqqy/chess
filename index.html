@@ -11,28 +11,95 @@
 	</style>
 </head>
 <body style="width: 100%; height: 100%; margin: 0">
-<svg id="window" width="100%" height="100%">
-	<rect width="100%" height="100%" style="fill: #ecffb3"/>
-	<text x="50%" y="25%" text-anchor="middle" alignment-baseline="central" style="font-size: 150;">Chess</text>
-	<svg id="createGame" class="button" width="40%" height="50%" x="5%" y="40%">
-		<rect width="100%" height="100%" style="fill: #33cc33;"/>
-		<text x="50%" y="50%" text-anchor="middle" alignment-baseline="central" style="font-size: 100;">Create Game</text>
-	</svg>
-	<svg id="joinGame" width="40%" height="50%" x="55%" y="40%">
-		<svg id="gameId1" class="button" width="20%" height="20%" x="0%" y="0%">
-			<rect width="100%" height="100%" style="fill: #33cc33;"/>
-			<text x="50%" y="50%" text-anchor="middle" alignment-baseline="central" style="font-size: 20;">Room 1</text>
-		</svg>
-		<svg id="gameId1" class="button" width="20%" height="20%" x="25%" y="0%">
-			<rect width="100%" height="100%" style="fill: #33cc33;"/>
-			<text x="50%" y="50%" text-anchor="middle" alignment-baseline="central" style="font-size: 20;">Room 2</text>
-		</svg>
-	</svg>
-</svg>
 <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
 <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
 <script>
 	var socket = io();
+	var numRooms = 0;
+	var cellSL = 45;
+
+	function initMain() {
+		$('body').html('<svg id="window" width="100%" height="100%">' +
+				'<rect width="100%" height="100%" style="fill: #ecffb3"/>' +
+				'<text x="50%" y="25%" text-anchor="middle" alignment-baseline="central" style="font-size: 150;">Chess</text>' +
+				'<foreignObject width="10%" height="10%" x="5%" y="60%">' +
+				'<form> Room Name: <br>' +
+				'<input id="roomName" type="text" />' +
+				'</form>' +
+				'</foreignObject>' +
+				'<svg id="createGame" class="button" width="30%" height="50%" x="15%" y="40%" onclick="createGame()">' +
+				'<rect width="100%" height="100%" style="fill: #33cc33;"/>' +
+				'<text x="50%" y="50%" text-anchor="middle" alignment-baseline="central" style="font-size: 60;">Create Game</text>' +
+				'</svg>' +
+				'<svg id="joinGame" width="40%" height="50%" x="55%" y="40%"></svg>' +
+				'</svg>');
+	}
+
+	function initGame() {
+
+	}
+
+	function createGame() {
+		var roomName = $('#roomName').val();
+		if (roomName == '') {
+			alert('Invalid room name');
+			return;
+		}
+		if (numRooms >= 16) {
+			alert('Too many rooms');
+			return;
+		}
+		$('#joinGame').append('<svg id="' + roomName + '" class="button" width="20%" height="20%" x="' + ((numRooms % 4) * 25) + '%" y="' + (Math.floor(numRooms / 4) * 25) + '%" onclick="joinGame(\'' + roomName + '\')">' +
+				'<rect width="100%" height="100%" style="fill: #33cc33;"/>' +
+				'<text x="50%" y="50%" text-anchor="middle" alignment-baseline="central" style="font-size: 20;">' + roomName + '</text>' +
+				'</svg>');
+		$('#' + roomName).click();
+		numRooms++;
+	}
+
+	function joinGame(roomName) {
+		var chessboard = '', chesspieces = '', side = Math.floor(Math.random() * 2) * 2 - 1; //-1 = black, 1 = white
+		for (var i = 0; i < 8; i++) {
+			for (var j = 0; j < 8; j++) {
+				if ((i + j) % 2) {
+					chessboard += '<rect width="' + cellSL + '" height="' + cellSL + '" x="' + ((i - 4) * cellSL) + '" y = "' + ((j - 4) * cellSL) + '" style="fill: #d18b47"/>';
+				}
+				else {
+					chessboard += '<rect width="' + cellSL + '" height="' + cellSL + '" x="' + ((i - 4) * cellSL) + '" y = "' + ((j - 4) * cellSL) + '" style="fill: #ffce9e"/>';
+				}
+			}
+		}
+		chesspieces += '<svg x="' + ((-0.5 + 0.5 * side) * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wk"/></svg>';
+		chesspieces += '<svg x="' + ((-0.5 - 0.5 * side) * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wq"/></svg>';
+		chesspieces += '<svg x="' + (-4 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wr"/></svg>';
+		chesspieces += '<svg x="' + (3 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wr"/></svg>';
+		chesspieces += '<svg x="' + (-2 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wb"/></svg>';
+		chesspieces += '<svg x="' + (1 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wb"/></svg>';
+		chesspieces += '<svg x="' + (-3 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wn"/></svg>';
+		chesspieces += '<svg x="' + (2 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wn"/></svg>';
+		for (var i = 0; i < 8; i++) {
+			chesspieces += '<svg x="' + ((i - 4) * cellSL) + '" y="' + ((-0.5 + 2.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wp"/></svg>';
+		}
+		chesspieces += '<svg x="' + ((-0.5 + 0.5 * side) * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bk"/></svg>';
+		chesspieces += '<svg x="' + ((-0.5 - 0.5 * side) * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bq"/></svg>';
+		chesspieces += '<svg x="' + (-4 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#br"/></svg>';
+		chesspieces += '<svg x="' + (3 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#br"/></svg>';
+		chesspieces += '<svg x="' + (-2 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bb"/></svg>';
+		chesspieces += '<svg x="' + (1 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bb"/></svg>';
+		chesspieces += '<svg x="' + (-3 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bn"/></svg>';
+		chesspieces += '<svg x="' + (2 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bn"/></svg>';
+		for (var i = 0; i < 8; i++) {
+			chesspieces += '<svg x="' + ((i - 4) * cellSL) + '" y="' + ((-0.5 - 2.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bp"/></svg>';
+		}
+		$('body').html('<svg id="window" width="100%" height="100%">' +
+				'<rect width="100%" height="100%" style="fill: #ecffb3"/>' +
+				'<text x="0" y="15">' + roomName + '</text>' +
+				'<svg id="chessboard" x="50%" y="50%" overflow="visible">' + chessboard + '</svg>' +
+				'<svg id="chesspieces" x="50%" y="50%" overflow="visible">' + chesspieces + '</svg>' +
+				'</svg>');
+	}
+
+	initMain();
 </script>
 </body>
 </html>
