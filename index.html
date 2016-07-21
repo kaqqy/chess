@@ -17,12 +17,12 @@
 	var socket = io();
 
 	var curRoom = null;
-	var rooms = {};
-	var games = {}; //all games in progress
+	var rooms = {}; // key is roomName, value is object containing start: true/false
 
-	var cellSL = 45; //side length for square of chess board
+	var cellSL = 45; // side length for square of chess board
 
 	function initMain() {
+		curRoom = null;
 		$('body').html('<svg id="window" width="100%" height="100%">' +
 				'<rect width="100%" height="100%" style="fill: #ecffb3"/>' +
 				'<text x="50%" y="25%" text-anchor="middle" alignment-baseline="central" style="font-size: 150;">Chess</text>' +
@@ -39,6 +39,103 @@
 				'</svg>');
 		updateRooms();
 	}
+
+	function updateRooms() {
+		if (curRoom != null || $('#joinGame').length == 0) {
+			return;
+		}
+		$('#joinGame').html('');
+		var count = 0;
+		for (var room in rooms) {
+			if (rooms.hasOwnProperty(room) && rooms[room].start == false) {
+				$('#joinGame').append('<svg id="' + room + '" class="button" width="20%" height="20%" x="' + ((count % 4) * 25) + '%" y="' + (Math.floor(count / 4) * 25) + '%" onclick="joinGame(\'' + room + '\')">' +
+						'<rect width="100%" height="100%" style="fill: #33cc33;"/>' +
+						'<text x="50%" y="50%" text-anchor="middle" alignment-baseline="central" style="font-size: 20;">' + room + '</text>' +
+						'</svg>');
+				count++;
+			}
+		}
+	}
+
+	function initGame(roomName, color) {
+		curRoom = roomName;
+		var chessboard = '', chesspieces = '', side = color == 'white' ? 1 : -1; //-1 = black, 1 = white
+		for (var i = 0; i < 8; i++) {
+			for (var j = 0; j < 8; j++) {
+				if ((i + j) % 2) {
+					chessboard += '<rect width="' + cellSL + '" height="' + cellSL + '" x="' + ((i - 4) * cellSL) + '" y = "' + ((j - 4) * cellSL) + '" style="fill: #d18b47"/>';
+				}
+				else {
+					chessboard += '<rect width="' + cellSL + '" height="' + cellSL + '" x="' + ((i - 4) * cellSL) + '" y = "' + ((j - 4) * cellSL) + '" style="fill: #ffce9e"/>';
+				}
+			}
+		}
+		chesspieces += '<svg x="' + ((-0.5 + 0.5 * side) * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wk"/></svg>';
+		chesspieces += '<svg x="' + ((-0.5 - 0.5 * side) * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wq"/></svg>';
+		chesspieces += '<svg x="' + (-4 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wr"/></svg>';
+		chesspieces += '<svg x="' + (3 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wr"/></svg>';
+		chesspieces += '<svg x="' + (-2 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wb"/></svg>';
+		chesspieces += '<svg x="' + (1 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wb"/></svg>';
+		chesspieces += '<svg x="' + (-3 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wn"/></svg>';
+		chesspieces += '<svg x="' + (2 * cellSL) + '" y="' + ((-0.5 + 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wn"/></svg>';
+		for (var i = 0; i < 8; i++) {
+			chesspieces += '<svg x="' + ((i - 4) * cellSL) + '" y="' + ((-0.5 + 2.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#wp"/></svg>';
+		}
+		chesspieces += '<svg x="' + ((-0.5 + 0.5 * side) * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bk"/></svg>';
+		chesspieces += '<svg x="' + ((-0.5 - 0.5 * side) * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bq"/></svg>';
+		chesspieces += '<svg x="' + (-4 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#br"/></svg>';
+		chesspieces += '<svg x="' + (3 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#br"/></svg>';
+		chesspieces += '<svg x="' + (-2 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bb"/></svg>';
+		chesspieces += '<svg x="' + (1 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bb"/></svg>';
+		chesspieces += '<svg x="' + (-3 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bn"/></svg>';
+		chesspieces += '<svg x="' + (2 * cellSL) + '" y="' + ((-0.5 - 3.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bn"/></svg>';
+		for (var i = 0; i < 8; i++) {
+			chesspieces += '<svg x="' + ((i - 4) * cellSL) + '" y="' + ((-0.5 - 2.5 * side) * cellSL) + '"><use xlink:href="chesspieces.svg#bp"/></svg>';
+		}
+		$('body').html('<svg id="window" width="100%" height="100%">' +
+				'<rect width="100%" height="100%" style="fill: #ecffb3"/>' +
+				'<text x="0" y="15">' + roomName + '</text>' +
+				'<svg id="chessboard" x="50%" y="50%" overflow="visible">' + chessboard + '</svg>' +
+				'<svg id="chesspieces" x="50%" y="50%" overflow="visible">' + chesspieces + '</svg>' +
+				'</svg>');
+	}
+
+	function createGame() {
+		var roomName = $('#roomName').val();
+		if (roomName == '') {
+			alert('Invalid room name');
+			return;
+		}
+		if (rooms[roomName] != null) {
+			alert('Room name already taken');
+			return;
+		}
+		socket.emit('createGame', roomName);
+	}
+
+	function joinGame(roomName) {
+		socket.emit('joinGame', roomName);
+	}
+
+	// socket stuff
+	socket.on('joinGame', function(roomName, color) {
+		initGame(roomName, color);
+	});
+
+	socket.on('updateRooms', function(_rooms) {
+		rooms = _rooms;
+		updateRooms();
+	});
+
+	socket.on('alert', function(message) {
+		alert(message);
+	});
+
+	initMain();
+
+	/*
+
+
 
 	function updateRooms() {
 		if (curRoom != null || $('#joinGame').length == 0) {
@@ -131,9 +228,7 @@
 	socket.on('alert', function(message) {
 		alert(message);
 		curRoom = null;
-	});
-
-	initMain();
+	});*/
 </script>
 </body>
 </html>

@@ -5,8 +5,9 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var Chess = require('./chess.min').Chess;
 
-var openRooms = {};
-var gamesIP = {}; //in progress
+var rooms = {}; // key is roomName, value is object containing start: true/false
+/*var openRooms = {};
+var gamesIP = {}; //in progress*/
 
 //test
 /*var chess = new Chess();
@@ -27,7 +28,45 @@ app.get('/', function (req, res) {
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', function (socket) {
-	//sends all available room information
+	socket.emit('updateRooms', rooms);
+
+	socket.on('createGame', function(roomName) {
+		if (rooms[roomName] != null) {
+			socket.emit('alert', 'Room name already taken');
+			return;
+		}
+		socket.join(roomName);
+		rooms[roomName] = {start: false, black: null, white: null};
+		if (Math.floor(Math.random() * 2)) {
+			rooms[roomName].black = socket.id;
+			socket.emit('joinGame', roomName, 'black');
+		}
+		else {
+			rooms[roomName].white = socket.id;
+			socket.emit('joinGame', roomName, 'white');
+		}
+		io.emit('updateRooms', rooms);
+	});
+
+	socket.on('joinGame', function(roomName) {
+		if (io.sockets.adapter.rooms[roomName].length >= 2) {
+			socket.emit('alert', 'Can\'t join room');
+			return;
+		}
+		socket.join(roomName);
+		rooms[roomName].start = true;
+		if (rooms[roomName].white == null) {
+			rooms[roomName].white = socket.id;
+			socket.emit('joinGame', roomName, 'white');
+		}
+		else {
+			rooms[roomName].black = socket.id;
+			socket.emit('joinGame', roomName, 'black');
+		}
+		io.emit('updateRooms', rooms);
+	});
+
+	/*//sends all available room information
 	socket.emit('updateRooms', openRooms);
 
 	socket.on('joinGame', function (roomName, color) {
@@ -37,16 +76,16 @@ io.on('connection', function (socket) {
 			return;
 		}
 		if (io.sockets.adapter.rooms[roomName].length == 1) {
-			gamesIP[roomName] = {color: socket};
+			gamesIP[roomName] = {color: socket.id};
 			openRooms[roomName] = (color == 'black' ? 'white' : 'black');
 		}
 		else {
-			gamesIP[roomName][color] = socket;
+			gamesIP[roomName][color] = socket.id;
 			delete openRooms[roomName];
 		}
 		io.emit('updateRooms', openRooms);
 		io.emit('updateGames', gamesIP);
-	});
+	});*/
 });
 
 var server_port = process.env.OPENSHIFT_NODEJS_PORT || 2000;
