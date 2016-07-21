@@ -15,8 +15,12 @@
 <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
 <script>
 	var socket = io();
-	var numRooms = 0;
-	var cellSL = 45;
+
+	var curRoom = null;
+	var rooms = {};
+	var games = {}; //all games in progress
+
+	var cellSL = 45; //side length for square of chess board
 
 	function initMain() {
 		$('body').html('<svg id="window" width="100%" height="100%">' +
@@ -33,10 +37,24 @@
 				'</svg>' +
 				'<svg id="joinGame" width="40%" height="50%" x="55%" y="40%"></svg>' +
 				'</svg>');
+		updateRooms();
 	}
 
-	function initGame() {
-
+	function updateRooms() {
+		if (curRoom != null || $('#joinGame').length == 0) {
+			return;
+		}
+		$('#joinGame').html('');
+		var count = 0;
+		for (var room in rooms) {
+			if (rooms.hasOwnProperty(room)) {
+				$('#joinGame').append('<svg id="' + room + '" class="button" width="20%" height="20%" x="' + ((count % 4) * 25) + '%" y="' + (Math.floor(count / 4) * 25) + '%" onclick="joinGame(\'' + room + '\')">' +
+						'<rect width="100%" height="100%" style="fill: #33cc33;"/>' +
+						'<text x="50%" y="50%" text-anchor="middle" alignment-baseline="central" style="font-size: 20;">' + room + '</text>' +
+						'</svg>');
+				count++;
+			}
+		}
 	}
 
 	function createGame() {
@@ -45,20 +63,22 @@
 			alert('Invalid room name');
 			return;
 		}
-		if (numRooms >= 16) {
+		if (Object.keys(rooms).length >= 16) {
 			alert('Too many rooms');
 			return;
 		}
-		$('#joinGame').append('<svg id="' + roomName + '" class="button" width="20%" height="20%" x="' + ((numRooms % 4) * 25) + '%" y="' + (Math.floor(numRooms / 4) * 25) + '%" onclick="joinGame(\'' + roomName + '\')">' +
-				'<rect width="100%" height="100%" style="fill: #33cc33;"/>' +
-				'<text x="50%" y="50%" text-anchor="middle" alignment-baseline="central" style="font-size: 20;">' + roomName + '</text>' +
-				'</svg>');
-		$('#' + roomName).click();
-		numRooms++;
+		if (rooms.hasOwnProperty(roomName) || games.hasOwnProperty(roomName)) {
+			alert('Room name already taken');
+			return;
+		}
+		joinGame(roomName);
+		curRoom = roomName;
 	}
 
 	function joinGame(roomName) {
-		var chessboard = '', chesspieces = '', side = Math.floor(Math.random() * 2) * 2 - 1; //-1 = black, 1 = white
+		var color = rooms[roomName] ? rooms[roomName] : (Math.floor(Math.random() * 2) ? 'white' : 'black');
+		socket.emit('joinGame', roomName, color);
+		var chessboard = '', chesspieces = '', side = color == 'white' ? 1 : -1; //-1 = black, 1 = white
 		for (var i = 0; i < 8; i++) {
 			for (var j = 0; j < 8; j++) {
 				if ((i + j) % 2) {
@@ -98,6 +118,20 @@
 				'<svg id="chesspieces" x="50%" y="50%" overflow="visible">' + chesspieces + '</svg>' +
 				'</svg>');
 	}
+
+	socket.on('updateRooms', function(_rooms) {
+		rooms = _rooms;
+		updateRooms();
+	});
+
+	socket.on('updateGames', function(_games) {
+		games = _games;
+	});
+
+	socket.on('alert', function(message) {
+		alert(message);
+		curRoom = null;
+	});
 
 	initMain();
 </script>
